@@ -33,6 +33,7 @@ AAsteroidSpawner::AAsteroidSpawner()
 	
 	// Configure the Asteroid spawn parameters (Don't fail spawning because of collision)
 	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
 }
 
 // Called when the game starts or when spawned
@@ -40,10 +41,8 @@ void AAsteroidSpawner::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Get the current Game Mode
-	ASpaceRocksGameMode *TheGameMode = Cast<ASpaceRocksGameMode>(UGameplayStatics::GetGameMode(this));
-
 	// Register the Asteroid Spawner with the game mode:
+	ASpaceRocksGameMode *TheGameMode = Cast<ASpaceRocksGameMode>(UGameplayStatics::GetGameMode(this));
 	if (TheGameMode != NULL)
 		TheGameMode->RegisterAsteroidSpawner(this);
 	else
@@ -156,6 +155,8 @@ void AAsteroidSpawner::StartSpawning() {
 		// Set a new timer
 		World->GetTimerManager().SetTimer(TimerHandle_SpawnSaucerTimer, this, &AAsteroidSpawner::SpawnSaucer, StartingSaucerFrequency);
 	}
+	else
+		UE_LOG(LogTemp, Warning, TEXT("DEBUG: AAsteroidSpawner::StartSpawning() ERROR - World is NULL!!!"));
 }
 
 // Spawn next wave of Asteroids:

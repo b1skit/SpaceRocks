@@ -48,6 +48,10 @@ APowerUp::APowerUp()
 	
 	// Set the initial life span = infinite
 	this->InitialLifeSpan = POWERUP_LIFESPAN; // TO DO: FLASH WHEN ABOUT TO EXPIRE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+	// Cache sound effect
+	static ConstructorHelpers::FObjectFinder<USoundBase> PowerUpAudio(TEXT("SoundWave'/Game/Audio/CollectPowerUp.CollectPowerUp'"));
+	CollectSound = PowerUpAudio.Object;
 }
 
 // Called when the game starts or when spawned
@@ -102,6 +106,11 @@ void APowerUp::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector
 		// Notify the game mode:
 		ASpaceRocksGameMode *TheGameMode = Cast<ASpaceRocksGameMode>(UGameplayStatics::GetGameMode(this));
 		if (TheGameMode != NULL) {
+			// Play the collection sound:
+			if (CollectSound != NULL) {
+				UGameplayStatics::PlaySoundAtLocation(this, CollectSound, GetActorLocation());
+			}
+
 			Destroy(); // Destroy the powerup when it is collected (Asteroid spawner notified in Destroyed() )
 		}
 	}

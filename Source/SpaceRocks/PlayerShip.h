@@ -52,7 +52,8 @@ public:
 	
 
 	//UPROPERTY(EditAnywhere)
-	USphereComponent *ShipCollision;		// Asteroid simple sphere collision component
+	USphereComponent *ShipCollision;		// Sphere collision component for the ship
+	USphereComponent *ShieldCollision;		// Sphere collision component for the shield
 
 	// Play the 1-Up sound. Triggered by the game mode as appropriate
 	void PlayOneUpSound();
@@ -140,6 +141,7 @@ private:
 	uint32 bCanFire : 1;						//Flag to control firing
 	uint8 NumSpreadShots;						// The current number of spreadshots
 	const uint8 MAX_SPREAD_SHOTS = 4;
+	const uint16 WEAPON_POINT_VALUE = 5000;		// Number of points to award if the weapon slot is full
 
 	float GunForwardOffset = 70.0f;					// Offset from the ship to spawn projectiles: MUST NOT INTERSECT SHIP!
 	float GunForwardStagger = 20.0f;				// Stagger the spread shots by this
@@ -152,14 +154,23 @@ private:
 	FTimerHandle TimerHandle_ShieldTimer;
 	float ShieldFadeTime = 0.1f;
 	float ShieldBurnRate = 7.0f;			// How quickly to decrease the shield value while the shield is active
-	UStaticMeshComponent *ShieldMesh;
+	UStaticMeshComponent *ShieldMesh;			// Visible shield mesh
+	// Shield collision
 	UMaterial *PlayerShipShieldMaterial;		// Shield material
+	
+	// Shield jitter
+	float ShieldScaleDelta;					// 
+	float CurrentShieldScaleFactor;				// Current sheild scale value: Is clamped to 2xPi in tick, used as input for Sin
+	float ShieldPulseRate = 32.0f;				// Factor for how quickly to pulse the shield
+	float ShieldScaleAmount = 0.05f;				// How much to scale the shield by
 
 	// Sound effects
 	USoundBase *FireSound;						// Sound to play each time we fire
 	USoundBase *HitSound;						// Sound to play when the ship is destroyed by something
 	USoundBase *SpawnSound;						// Sound to play when (re)spawning
 	USoundBase *OneUpSound;						// 1-Up sound. Played when triggered by game mode
+	USoundBase *ShieldHitSound;					// Sound to play when the shield deflects something
+	USoundBase *ShieldEngageSound;				// Sound to play when the shield is engaged
 	
 	UAudioComponent* PlayerShipThrusterSoundComponent;
 

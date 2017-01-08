@@ -34,6 +34,12 @@ APlayerShip::APlayerShip() {
 	static ConstructorHelpers::FObjectFinder<USoundBase> OneUpSoundAudio(TEXT("SoundWave'/Game/Audio/OneUp.OneUp'"));
 	OneUpSound = OneUpSoundAudio.Object;
 
+	static ConstructorHelpers::FObjectFinder<USoundBase> ShieldHitSoundAudio(TEXT("SoundWave'/Game/Audio/ShieldHit.ShieldHit'"));
+	ShieldHitSound = ShieldHitSoundAudio.Object;
+
+	static ConstructorHelpers::FObjectFinder<USoundBase> SheildEngageAudio(TEXT("SoundWave'/Game/Audio/ShieldEngage.ShieldEngage'"));
+	ShieldEngageSound = SheildEngageAudio.Object;
+
 	// Player Ship Thruster Sounds:
 	static ConstructorHelpers::FObjectFinder<USoundCue>PlayerShipSoundCue(TEXT("SoundCue'/Game/Audio/PlayerShipThrusterCue.PlayerShipThrusterCue'"));
 	PlayerShipThrusterSoundComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("PlayerShipThrusterSound"));
@@ -42,7 +48,7 @@ APlayerShip::APlayerShip() {
 		PlayerShipThrusterSoundComponent->AttachTo(ShipMesh);
 	}
 
-	// Set the collision object:
+	// Set the ship collision:
 	ShipCollision = CreateDefaultSubobject<USphereComponent>(TEXT("RootComponent")); 
 	RootComponent = ShipCollision;
 	ShipCollision->InitSphereRadius(50.0f);
@@ -121,20 +127,36 @@ APlayerShip::APlayerShip() {
 	// Shield
 	ShieldValue = MaxShieldValue;
 	bShieldActivated = false;
+	ShieldScaleDelta = 1.0f;
+	CurrentShieldScaleFactor = 0;
 
-	// Configure Shield mesh:
+	// Configure visible Shield mesh:
 	ShieldMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ShieldMesh"));
 	ShieldMesh->AttachTo(ShipMesh);
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> ShieldMeshAsset(TEXT("StaticMesh'/Game/Art/Models/PlayerShipShieldMesh.PlayerShipShieldMesh'"));
 	if (ShieldMeshAsset.Succeeded()) {
 		ShieldMesh->SetStaticMesh(ShieldMeshAsset.Object);
 	}
-	
+	ShieldMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision); // Disable collision on the visible mesh
+
 	// Configure shield collision:
-	ShieldMesh->OnComponentHit.AddDynamic(this, &APlayerShip::OnShieldHit);
-	ShieldMesh->SetNotifyRigidBodyCollision(true); // Enable 'Simulation Generates Hit Events'
-	ShieldMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block); // MUST be set each round in the constructor
-	ShieldMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECR_Ignore); // Ignore the SRprojectile channel
+
+	// Set the shield collision:
+	ShieldCollision = CreateDefaultSubobject<USphereComponent>(TEXT("ShieldCollisionComponent"));
+	ShieldCollision->InitSphereRadius(50.0f);
+	ShieldCollision->AttachTo(ShipMesh);
+
+	ShieldCollision->OnComponentHit.AddDynamic(this, &APlayerShip::OnShieldHit);
+	ShieldCollision->SetNotifyRigidBodyCollision(true); // Enable 'Simulation Generates Hit Events'
+	ShieldCollision->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block); // MUST be set each round in the constructor
+	ShieldCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECR_Ignore); // Ignore the SRprojectile channel
+
+	
+
+	//ShieldMesh->OnComponentHit.AddDynamic(this, &APlayerShip::OnShieldHit);
+	//ShieldMesh->SetNotifyRigidBodyCollision(true); // Enable 'Simulation Generates Hit Events'
+	//ShieldMesh->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block); // MUST be set each round in the constructor
+	//ShieldMesh->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel1, ECR_Ignore); // Ignore the SRprojectile channel
 
 	bDamageable = true;
 
@@ -187,28 +209,24 @@ void APlayerShip::BeginPlay(){
 	if (RightThrusterMesh != NULL)
 		RightThrusterMesh->SetMaterial(0, ThrusterMaterial);
 	
-
-
-
-	// THIS DOESN'T SEEM TO WORK PROPERLY???
+	// Scale the ship mesh size
 	if (ShipMesh != NULL)
 		ShipMesh->SetWorldScale3D(FVector(SizeScale, SizeScale, SizeScale) ); // Scale the ship mesh size
-	//UE_LOG(LogTemp, Warning, TEXT("Ship RelativeScale3D: x: %f y:%f z:%f"), ShipMesh->RelativeScale3D.X, ShipMesh->RelativeScale3D.Y, ShipMesh->RelativeScale3D.Z);
-
-
 
 	// Start the thruster sound 
 	PlayerShipThrusterSoundComponent->Play();
 
 	// Sheild:
-
-	if (ShieldMesh != NULL)
+	if (ShieldMesh != NULL) {
 		ShieldMesh->SetVisibility(false);
-
-	if (ShieldMesh != NULL)
 		ShieldMesh->SetMaterial(0, PlayerShipShieldMaterial);
+		ShieldMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision); // Turn off collision
+	}
 
-	ShieldMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision); // Turn off collision
+	if (ShieldCollision != NULL) {
+		ShieldCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision); // Turn off collision
+	}	
+	
 }
 
 // Bind functionality to input:
@@ -309,7 +327,26 @@ void APlayerShip::Tick(float DeltaTime)
 	// Burn the shield, if it's active
 	if (bShieldActivated) {
 		ShieldValue -= ShieldBurnRate * DeltaTime;
+
+		// Turn the shield off if we've run out of ShieldValue
+		if (ShieldValue <= 0)
+			this->DeactivateShield();
 	}
+
+	// Handle shield size jitter
+	// Calculate the position in the shield jitter phase:
+	CurrentShieldScaleFactor += DeltaTime; 
+	if (CurrentShieldScaleFactor > *GlobalVectorConstants::TwoPi.m128_f32)
+		CurrentShieldScaleFactor -= *GlobalVectorConstants::TwoPi.m128_f32;
+
+	// Calculate the relative amount to change the shield size by:
+	ShieldScaleDelta = (ShieldScaleAmount * FMath::Sin(ShieldPulseRate * CurrentShieldScaleFactor));
+
+	// Calculate the new shield scadle value
+	FVector NewShieldScale( 1 + ShieldScaleAmount + ShieldScaleDelta, 1 + ShieldScaleAmount + ShieldScaleDelta, 1 + ShieldScaleAmount + ShieldScaleDelta);
+
+	// Set the new shield size:
+	ShieldMesh->SetRelativeScale3D(NewShieldScale);
 } // End Tick
 
 
@@ -419,6 +456,7 @@ void APlayerShip::ShotTimerExpired(){
 
 // Handle direct ship collision hits
 void APlayerShip::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit) {
+	
 	// Handle pickup collection 
 	if (OtherActor != NULL && OtherActor->IsInA (APowerUp::StaticClass())) { // TO DO: Check if OtherActor INHERITS from APowerUp !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	
@@ -454,8 +492,15 @@ void APlayerShip::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComp, FVec
 		}
 
 		// Handle Weapon powerups
-		else if (OtherActor->IsA(APowerUpWeapon::StaticClass()) && NumSpreadShots < MAX_SPREAD_SHOTS) {
-			NumSpreadShots++;
+		else if (OtherActor->IsA(APowerUpWeapon::StaticClass())) { 
+			if (NumSpreadShots < MAX_SPREAD_SHOTS) // Add a new weapon if we haven't maxed the weapon out
+				NumSpreadShots++;
+			else { // Otherwise, add points instead
+				ASpaceRocksGameMode *TheGameMode = Cast<ASpaceRocksGameMode>(UGameplayStatics::GetGameMode(this));
+				if (TheGameMode != NULL)
+					TheGameMode->AddPoints(WEAPON_POINT_VALUE);
+			}
+
 		}
 		
 	} // End powerup handling
@@ -499,7 +544,10 @@ void APlayerShip::OnShieldHit(AActor* OtherActor, UPrimitiveComponent* OtherComp
 		if (ShieldValue <= 0) // If the shield is now exhausted, disable it
 			DeactivateShield();
 
-		// TO DO: IMPLEMENT SHIELD IMPACT SOUND!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+		// Play the shield hit sound
+		if (ShieldHitSound != NULL) {
+			UGameplayStatics::PlaySoundAtLocation(this, ShieldHitSound, GetActorLocation());
+		}
 	}
 }
 
@@ -547,7 +595,12 @@ void APlayerShip::ActivateShield() {
 		bShieldActivated = true;
 		ShieldMesh->SetVisibility(true);
 		ShieldMesh->SetHiddenInGame(false);
-		ShieldMesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics); // Turn on collision
+		ShieldCollision->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics); // Turn on collision
+
+		// Play the shield activation sound
+		if (ShieldEngageSound != NULL) {
+			UGameplayStatics::PlaySoundAtLocation(this, ShieldEngageSound, GetActorLocation());
+		}
 	}
 }
 
@@ -555,7 +608,7 @@ void APlayerShip::ActivateShield() {
 void APlayerShip::DeactivateShield() {
 	bShieldActivated = false;
 	ShieldMesh->SetVisibility(false);
-	ShieldMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision); // Turn off collision
+	ShieldCollision->SetCollisionEnabled(ECollisionEnabled::NoCollision); // Turn off collision
 }
 
 // Increase the shield value

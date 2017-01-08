@@ -38,6 +38,9 @@ private:
 
 	// Get a random travel direction for the powerup
 	FVector GetPowerUpDirection();
+
+	// PowerUp sound
+	USoundBase *CollectSound;					// Sound to play when the powerup is collected
 };
 
 

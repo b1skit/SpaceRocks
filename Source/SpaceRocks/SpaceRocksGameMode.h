@@ -67,6 +67,9 @@ public:
 	// (re)Spawn a player
 	void SpawnPlayer();
 
+	// Return to the main menu
+	void ReturnToMainMenu();
+
 
 	/********** GAME INFO: *******************************/
 	// Get the player score
@@ -105,6 +108,10 @@ public:
 	// Add an extra life
 	void AddLife();
 
+	// Flag the game over hud to be displayed
+	UFUNCTION(BlueprintCallable, Category = "HUD")
+	bool IsGameOver();
+
 private:
 	// The current game state
 	ESpaceRocksPlayState CurrentState;
@@ -118,14 +125,18 @@ private:
 	// The current player level
 	uint32 CurrentLevel;
 
-	uint32 bAwaitingRespawn;
+	// Is the player awaiting respawn?
+	uint8 bAwaitingRespawn;
 
 	const uint32 FREE_LIFE_POINTS = 10000;	// At what level to award a free life
 	uint32 PointsToFreeLife;
 
-	// Respawn timer: Handles player respawn delay
+	// Player respawn timer: Handles player respawn delay
 	FTimerHandle TimerHandle_RespawnTimer;
 	const float RESPAWN_DELAY = 1.0f;
+
+	const float ENDGAME_MESSAGE_DISPLAY_TIME = 5.0f;
+	bool bIsGameOver;
 
 };
 
@@ -175,4 +186,9 @@ FORCEINLINE float ASpaceRocksGameMode::GetPlayerShipShieldValue() {
 // Add an extra life
 FORCEINLINE void ASpaceRocksGameMode::AddLife() {
 	PlayerLives++;
+}
+
+// Flag the game over hud to be displayed
+FORCEINLINE bool ASpaceRocksGameMode::IsGameOver() {
+	return bIsGameOver;
 }

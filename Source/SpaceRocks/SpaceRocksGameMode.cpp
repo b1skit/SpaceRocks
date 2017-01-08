@@ -16,6 +16,10 @@ ASpaceRocksGameMode::ASpaceRocksGameMode() {
 
 	// Initialize the free life counter
 	PointsToFreeLife = 0;
+
+	// Do not display the game over hud
+	bIsGameOver = false;
+
 }
 
 // Tick: Called every frame
@@ -33,7 +37,7 @@ void ASpaceRocksGameMode::Tick(float DeltaSeconds) {
 
 	// NEW GAME:
 	case ESpaceRocksPlayState::ENewGame:
-					
+		
 		break;
 
 	// PLAYING:
@@ -51,11 +55,12 @@ void ASpaceRocksGameMode::Tick(float DeltaSeconds) {
 			if (World != NULL) {
 				World->GetTimerManager().SetTimer(TimerHandle_RespawnTimer, this, &ASpaceRocksGameMode::SpawnPlayer, RESPAWN_DELAY);	
 			}
+
 			// Adjust the game state:
 			SetCurrentState(ESpaceRocksPlayState::ERespawning);
 		}
 
-		// Player is dead and has no lives left (Game over):
+		// Handle game over: Player is dead and has no lives left
 		else if (ThePlayer == NULL && PlayerLives <= 0) {
 			SetCurrentState(ESpaceRocksPlayState::EGameOver); // Set/handle the game over state
 		}
@@ -64,8 +69,6 @@ void ASpaceRocksGameMode::Tick(float DeltaSeconds) {
 		else if (TheAsteroidSpawner != NULL && TheAsteroidSpawner->GetAsteroidCount() <= 0 && PlayerLives > 0) {
 			SetCurrentState(ESpaceRocksPlayState::EEndOfLevel); // Set/handle the end of level state
 		}
-		
-		break;
 
 	// RESPAWNING:
 	case ESpaceRocksPlayState::ERespawning:
@@ -76,7 +79,7 @@ void ASpaceRocksGameMode::Tick(float DeltaSeconds) {
 	case ESpaceRocksPlayState::EEndOfLevel:
 		
 
-		// TEMP WORKAROUND:
+		
 		// Set the state to "Playing" to start the next level
 		SetCurrentState(ESpaceRocksPlayState::EPlaying);
 		break;
@@ -84,10 +87,6 @@ void ASpaceRocksGameMode::Tick(float DeltaSeconds) {
 
 	// GAME OVER:
 	case ESpaceRocksPlayState::EGameOver:
-		
-		//// TEMP WORKAROUND:
-		//// Set the state to "Start Screen"
-		//SetCurrentState(ESpaceRocksPlayState::EStartScreen);
 		
 		break;
 
@@ -103,7 +102,6 @@ void ASpaceRocksGameMode::Tick(float DeltaSeconds) {
 
 // Begin play:
 void ASpaceRocksGameMode::BeginPlay() {
-
 
 }
 
@@ -122,7 +120,7 @@ void ASpaceRocksGameMode::HandleNewState(ESpaceRocksPlayState NewState) {
 			UE_LOG(LogTemp, Warning, TEXT("Handling StartScreen!"));
 
 			// Display start menu etc
-			// ..... (TBC)
+			bIsGameOver = false;
 
 
 			// (Re)Initialize player lives, score, level etc (FOR NEW GAME)
@@ -134,6 +132,13 @@ void ASpaceRocksGameMode::HandleNewState(ESpaceRocksPlayState NewState) {
 		// Handle the new game state
 		case ESpaceRocksPlayState::ENewGame:
 			UE_LOG(LogTemp, Warning, TEXT("Handling New Game!!"));
+
+			// (Re)Initialize the free life counter
+			PointsToFreeLife = 0;
+
+			// Move the game to the playing state
+			SetCurrentState(ESpaceRocksPlayState::EPlaying);
+
 			// Initialize the asteroid spawner:
 			if (TheAsteroidSpawner != NULL) {
 				
@@ -144,11 +149,6 @@ void ASpaceRocksGameMode::HandleNewState(ESpaceRocksPlayState NewState) {
 			else
 				UE_LOG(LogTemp, Warning, TEXT("DEBUG: SpaceRocksGameMode::HandleNewState Case newgame TheAsteroidSpawner is NULL!!"));
 
-			// (Re)Initialize the free life counter
-			PointsToFreeLife = 0;
-
-			// Move the game to the playing state
-			SetCurrentState(ESpaceRocksPlayState::EPlaying);
 			break;
 
 		// Handle the gameplay state. Set at the begging of each level, until the player dies or completes the level
@@ -167,10 +167,13 @@ void ASpaceRocksGameMode::HandleNewState(ESpaceRocksPlayState NewState) {
 			bAwaitingRespawn = false;
 
 			break;
+
+			break; // End EPlaying
 		
 		case ESpaceRocksPlayState::ERespawning:
 			bAwaitingRespawn = true;
-			break;
+			
+			break; // End ERespawning
 
 		// Handle the end-of-level state. This is the state between finishing the current level, and beginning the next leve.
 		case ESpaceRocksPlayState::EEndOfLevel:
@@ -179,23 +182,22 @@ void ASpaceRocksGameMode::HandleNewState(ESpaceRocksPlayState NewState) {
 			break;
 
 		// Handle the game over state. The player has died. Handle high scores etc before transitioning to the main menu
-		case ESpaceRocksPlayState::EGameOver:
+		case ESpaceRocksPlayState::EGameOver: {
 			UE_LOG(LogTemp, Warning, TEXT("Handling Game Over!!"));
-			// Display the end of game UI ?
-			// .....(TBC)
 
-			
 			// Reset the Asteroid Spawner:
-			if(TheAsteroidSpawner != NULL)
+			if (TheAsteroidSpawner != NULL)
 				TheAsteroidSpawner->ResetSpawner();
 
-			// Display end game UI ????
+			// Display end game message:
+			bIsGameOver = true;
 
-			// Load the menu level:
-			
-			//UGameplayStatics::OpenLevel(FString(""));
-			GetWorld()->ServerTravel(FString("World'/Game/UI/StartScreen/MainMenu.MainMenu'"));
-			
+			// Set a timer to return to the menu after a delay:
+			UWorld* const World = GetWorld();
+			if (World != NULL) {
+				World->GetTimerManager().SetTimer(TimerHandle_RespawnTimer, this, &ASpaceRocksGameMode::ReturnToMainMenu, ENDGAME_MESSAGE_DISPLAY_TIME);
+			}
+		}			
 			break;
 	
 		// Handle the unknown/default state: This should never be called!
@@ -245,13 +247,19 @@ void ASpaceRocksGameMode::SpawnPlayer() {
 	}
 }
 
+// Return to the main menu
+void ASpaceRocksGameMode::ReturnToMainMenu() {
+	
+	// Return to the menu level:
+	GetWorld()->ServerTravel(FString("World'/Game/UI/StartScreen/MainMenu.MainMenu'")); // Load the main menu level
+}
+
 // Register the player ship with the game mode
 void ASpaceRocksGameMode::RegisterPlayerShip(APlayerShip* NewPlayerShip) {
 	ThePlayerShip = NewPlayerShip;
 }
 
 // A blueprint callable function to trigger game start from the menu
-//UFUNCTION(BlueprintCallable, Category = "SpaceRocksGame")
 void ASpaceRocksGameMode::BPStartSRGame() {
 	SetCurrentState(ESpaceRocksPlayState::ENewGame); // New game state triggers playing state
 }
