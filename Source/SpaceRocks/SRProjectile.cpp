@@ -4,6 +4,7 @@
 #include "PlayerShip.h"
 #include "SRProjectile.h"
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "GameFramework/Actor.h"
 
 ASRProjectile::ASRProjectile()
 {
@@ -82,7 +83,7 @@ void ASRProjectile::Tick(float DeltaTime)
 	}
 }
 
-void ASRProjectile::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit){
+void ASRProjectile::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit){
 	// Only add impulse and destroy projectile if we hit a physics object
 	if ((OtherActor != NULL) && (OtherActor != this) && (OtherComp != NULL) )
 	{	

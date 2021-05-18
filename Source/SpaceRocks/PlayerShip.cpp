@@ -10,6 +10,7 @@
 #include "PowerUpPoints.h"			// Extra points powerup
 #include "PowerUpWeapon.h"			// Weapon powerup
 #include "PlayerShip.h"
+#include "GameFramework/Actor.h"
 
 const FName APlayerShip::PlayerShipThrusterPitch("PlayerShipThrusterPitch");
 const FName APlayerShip::PlayerShipThrusterVolume("PlayerShipThrusterVolume");
@@ -455,7 +456,7 @@ void APlayerShip::ShotTimerExpired(){
 }
 
 // Handle direct ship collision hits
-void APlayerShip::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit) {
+void APlayerShip::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit) {
 	
 	// Handle pickup collection 
 	if (OtherActor != NULL && OtherActor->IsInA (APowerUp::StaticClass())) { // TO DO: Check if OtherActor INHERITS from APowerUp !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -536,7 +537,7 @@ void APlayerShip::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComp, FVec
 }
 
 // Handle shield hits
-void APlayerShip::OnShieldHit(AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit) {
+void APlayerShip::OnShieldHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit) {
 	// Handle Shield deflections
 	if (bDamageable && OtherActor != NULL && OtherActor != this && !OtherActor->IsA( APowerUp::StaticClass() ) && bShieldActivated && ShieldValue > 0) {
 		ShieldValue -= 25; // TO DO: Alter damage based on impact type??????????????????????????????????????????? HAVE ASTEROIDS SPECIFY THEIR OWN DAMAGE!!!
@@ -568,7 +569,7 @@ uint32 APlayerShip::IsDamageable() {
 void APlayerShip::ToggleInvincibilityFlash() {
 	UWorld* const World = GetWorld(); // Get the world
 	if (World != NULL && !bDamageable) {
-		if (this->bHidden) {	// If hidden, unhide
+		if (this->IsHidden()) {	// If hidden, unhide
 			this->SetActorHiddenInGame(false);
 		}
 		else {					// If unhidden, hide

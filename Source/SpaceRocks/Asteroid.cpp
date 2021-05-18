@@ -10,6 +10,7 @@
 #include "PlayerShip.h"
 #include "Kismet/GameplayStatics.h"	// Required to retrieve GameMode
 #include "Asteroid.h"
+#include "GameFramework/Actor.h"
 
 
 // Constructor: Sets default values
@@ -29,7 +30,7 @@ AAsteroid::AAsteroid()
 	// ECollisionChannel::ECC_GameTraceChannel2 = PlayerShip
 	// ECollisionChannel::ECC_GameTraceChannel3 = PowerUps
 	//**************************************************************
-	AsteroidCollision->OnComponentHit.AddDynamic(this, &AAsteroid::OnHit);							// Set up a notification for when this component hits something
+	AsteroidCollision->OnComponentHit.AddDynamic(this, &AAsteroid::OnHit);					// Set up a notification for when this component hits something.
 	AsteroidCollision->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
 	AsteroidCollision->SetCollisionResponseToChannel(ECollisionChannel::ECC_GameTraceChannel3, ECollisionResponse::ECR_Ignore); // Disable collision with player ship
 	AsteroidCollision->SetNotifyRigidBodyCollision(true);											// Same as "Simulation Generates Hit Events" checkbox
@@ -89,12 +90,14 @@ AAsteroid::AAsteroid()
 void AAsteroid::BeginPlay(){
 	Super::BeginPlay();
 
+
 	// Dynamic material setup:
 	// Generate a random color modifier value:
 	if (this->IsA(AAsteroidLarge::StaticClass())) { // Large Asteroid's only: color is passed to shatters
 		AsteroidColorModifier = GetRandomColorModifierValue();
 	}
-		
+	
+
 	// Create and set a dynamic material instance
 	DynamicAsteroidMaterial = UMaterialInstanceDynamic::Create(AsteroidMaterial, this);
 	
@@ -146,7 +149,7 @@ void AAsteroid::Tick( float DeltaTime )
 }
 
 // Handle collision hits
-void AAsteroid::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit) {
+void AAsteroid::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit) {
 
 	// Collision handling:
 	if (OtherActor != NULL && OtherComp != NULL) {

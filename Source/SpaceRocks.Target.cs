@@ -5,21 +5,14 @@ using System.Collections.Generic;
 
 public class SpaceRocksTarget : TargetRules
 {
-	public SpaceRocksTarget(TargetInfo Target)
+	public SpaceRocksTarget(TargetInfo Target) : base (Target)
 	{
 		Type = TargetType.Game;
+		ExtraModuleNames.Add("SpaceRocks");
 	}
 
 	//
 	// TargetRules interface.
 	//
-
-	public override void SetupBinaries(
-		TargetInfo Target,
-		ref List<UEBuildBinaryConfiguration> OutBuildBinaryConfigurations,
-		ref List<string> OutExtraModuleNames
-		)
-	{
-		OutExtraModuleNames.AddRange( new string[] { "SpaceRocks" } );
-	}
+	
 }

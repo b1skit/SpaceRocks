@@ -39,7 +39,7 @@ public:
 	void ShotTimerExpired();
 
 	UFUNCTION() // MUST be a UFUNCTION to work!
-	void OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+	void OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
 	/*UPROPERTY(EditAnywhere)*/
 	// A visible component for the object
@@ -77,7 +77,7 @@ public:
 	
 	// Handle shield hits
 	UFUNCTION() // MUST be a UFUNCTION to work!
-	void OnShieldHit(AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+	void OnShieldHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 	
 	// Get the shield mesh component (used for collision checking)
 	UStaticMeshComponent* GetShieldMesh();
