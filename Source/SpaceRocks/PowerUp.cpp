@@ -4,6 +4,7 @@
 #include "PlayerShip.h"
 #include "SpaceRocksGameMode.h"		// Needed to send powerup collection notification
 #include "PowerUp.h"
+#include "GameFramework/Actor.h"
 
 
 // Sets default values
@@ -100,7 +101,7 @@ void APowerUp::Destroyed(){
 }
 
 // Handle the PowerUp being collected
-void APowerUp::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit) {
+void APowerUp::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit) {
 
 	if (OtherActor != NULL && OtherActor->IsA(APlayerShip::StaticClass() ) ){
 		// Notify the game mode:

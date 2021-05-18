@@ -2,11 +2,15 @@
 
 using UnrealBuildTool;
 
+
+
 public class SpaceRocks : ModuleRules
 {
-	public SpaceRocks(TargetInfo Target)
+	
+	public SpaceRocks(ReadOnlyTargetRules Target) : base (Target)
 	{
         PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore", "AIModule" });
+
 
         //PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });
 
