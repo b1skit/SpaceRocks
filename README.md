@@ -25,4 +25,4 @@ If you're interested in pulling this project to try it out, here are some instru
 
 Have fun!
 
-For more info, drop me an email at "adambadke at gmail dot com", or check out more of my work at adambadke.com
+For more info, connect with me on LinkedIn or check out more of my work at adambadke.com
