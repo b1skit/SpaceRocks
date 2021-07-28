@@ -1,5 +1,5 @@
 # SpaceRocks
-Note: Space Rocks is a work in progress!
+Note: Space Rocks is a work in progress! **Updated to Unreal Engine 4.26**
 
 Thanks for checking out my project! Space Rocks is a retro-style arcade space shooter inspired by Atari’s 1979 classic “Asteroids”, and created in Unreal Engine 4 as a personal project to learn more about the tools and workflows involved in programming in C++ using UE4.
 

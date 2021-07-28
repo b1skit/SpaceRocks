@@ -7,6 +7,7 @@
 #include "SRSaucerProjectile.h"		// For firing projectiles
 #include "PlayerShip.h"			// For retrieving information regarding the player ship
 #include "Saucer.h"
+#include "GameFramework/Actor.h"
 
 
 // Sets default values
@@ -118,7 +119,7 @@ void ASaucer::Tick( float DeltaTime )
 	FireShot();
 }
 
-void ASaucer::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit) {
+void ASaucer::OnHit(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit) {
 
 	// Try and play the hit sound effect (if specified)
 	if (SaucerHit != NULL) {
